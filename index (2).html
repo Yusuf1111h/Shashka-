@@ -1,0 +1,1059 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Shashka</title>
+<style>
+  :root {
+    color-scheme: dark;
+    --bg1: #2A1F17; --bg2: #15110D; --bg3: #0D0A08;
+    --ink: #F4EBDD;
+    --muted: #A8977F;
+    --gold: #E6B86A;
+    --gold-soft: rgba(230, 184, 106, 0.35);
+    --glass: rgba(255, 245, 230, 0.05);
+    --glass-line: rgba(255, 245, 230, 0.1);
+    --frame: #3B2617; --frame-hi: #5C3D24; --frame-lo: #2A1A0F;
+    --light-sq: #EFDDB9; --light-sq-2: #E3CDA0;
+    --dark-sq: #8A5A36; --dark-sq-2: #764A2A;
+    --red-hi: #E8675B; --red-lo: #9E2E26; --red-edge: #6E1D18;
+    --black-hi: #4A5068; --black-lo: #171A25; --black-edge: #0B0D14;
+    --btn-ink: #2A1A0F;
+  }
+  body[data-theme="modern"] {
+    --bg1: #1C2636; --bg2: #0E1420; --bg3: #090C13;
+    --muted: #94A3BA; --gold: #7EC8FF; --gold-soft: rgba(126, 200, 255, 0.35);
+    --frame: #1F2B3F; --frame-hi: #34486A; --frame-lo: #141C2A;
+    --light-sq: #DCE4F0; --light-sq-2: #C6D2E4;
+    --dark-sq: #4A6A94; --dark-sq-2: #3D5C84;
+    --btn-ink: #0B1A2C;
+  }
+  body[data-theme="night"] {
+    --bg1: #181A22; --bg2: #0A0B0F; --bg3: #0A0B0F;
+    --muted: #7B8294; --gold: #F2D98B; --gold-soft: rgba(242, 217, 139, 0.3);
+    --frame: #1B1D26; --frame-hi: #2B2E3B; --frame-lo: #101116;
+    --light-sq: #5A5F70; --light-sq-2: #50556A;
+    --dark-sq: #242732; --dark-sq-2: #1C1F28;
+    --black-hi: #A4ABBE; --black-lo: #5B6172; --black-edge: #2E3240;
+    --btn-ink: #1A1A10;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  body {
+    min-height: 100vh;
+    background: radial-gradient(120% 80% at 50% 0%, var(--bg1) 0%, var(--bg2) 60%, var(--bg3) 100%);
+    background-attachment: fixed;
+    color: var(--ink);
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    display: flex; justify-content: center;
+    padding: max(20px, env(safe-area-inset-top)) 16px max(20px, env(safe-area-inset-bottom));
+    position: relative; overflow-x: hidden;
+  }
+  body::before {
+    content: ""; position: fixed; inset: -20%;
+    background: radial-gradient(circle at 20% 30%, var(--gold-soft) 0%, transparent 35%),
+                radial-gradient(circle at 80% 70%, var(--gold-soft) 0%, transparent 30%);
+    opacity: 0.25; pointer-events: none; z-index: 0;
+    animation: drift 24s ease-in-out infinite alternate;
+  }
+  @keyframes drift { from { transform: translate(-3%, -2%) scale(1); } to { transform: translate(3%, 2%) scale(1.05); } }
+
+  .app { position: relative; z-index: 1; width: min(100%, 460px); display: flex; flex-direction: column; gap: 14px; }
+  header { display: flex; justify-content: space-between; align-items: flex-end; gap: 12px; padding: 0 4px; }
+  h1 { font-family: Georgia, "Times New Roman", serif; font-weight: 400; font-size: 1.9rem; line-height: 1; }
+  .legend { display: flex; gap: 14px; font-size: 0.8rem; color: var(--muted); }
+  .legend span { display: inline-flex; align-items: center; gap: 6px; }
+  .dot { width: 12px; height: 12px; border-radius: 50%; display: inline-block; box-shadow: inset 0 -2px 0 rgba(0,0,0,0.3); }
+  .dot.r { background: radial-gradient(circle at 34% 30%, var(--red-hi), var(--red-lo)); }
+  .dot.b { background: radial-gradient(circle at 34% 30%, var(--black-hi), var(--black-lo)); }
+
+  .opp { display: flex; justify-content: center; align-items: center; gap: 10px; min-height: 30px; font-size: 0.88rem; color: var(--muted); text-align: center; }
+  .opp .av { font-size: 1.3rem; }
+  .opp .quote { font-style: italic; color: var(--ink); opacity: 0.9; }
+
+  .infobar { display: flex; justify-content: center; align-items: center; gap: 10px; flex-wrap: wrap; min-height: 36px; }
+  .status {
+    font-size: 0.9rem; color: var(--muted);
+    background: var(--glass); border: 1px solid var(--glass-line);
+    backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+    padding: 8px 16px; border-radius: 999px;
+  }
+  .status b { color: var(--gold); font-weight: 600; }
+  .timer { font-size: 0.9rem; font-variant-numeric: tabular-nums; color: var(--gold); }
+  .timer:empty { display: none; }
+  .tip { min-height: 1.2em; text-align: center; font-size: 0.85rem; color: var(--gold); }
+  .tip:empty { display: none; }
+
+  .board-wrap {
+    background: linear-gradient(145deg, var(--frame-hi), var(--frame) 60%, var(--frame-lo));
+    padding: 14px; border-radius: 18px;
+    box-shadow: 0 24px 50px -12px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,255,255,0.08), inset 0 -2px 0 rgba(0,0,0,0.3);
+  }
+  .board {
+    display: grid; grid-template-columns: repeat(8, 1fr);
+    aspect-ratio: 1 / 1; width: 100%; position: relative;
+    border-radius: 6px; overflow: hidden;
+    box-shadow: inset 0 0 0 1px rgba(0,0,0,0.4);
+  }
+  .cell { position: relative; display: flex; align-items: center; justify-content: center; cursor: pointer; }
+  .cell.light { background: linear-gradient(135deg, var(--light-sq), var(--light-sq-2)); cursor: default; }
+  .cell.dark { background: linear-gradient(135deg, var(--dark-sq), var(--dark-sq-2)); box-shadow: inset 0 0 0 1px rgba(0,0,0,0.12); }
+  .cell.selected::after {
+    content: ""; position: absolute; inset: 3px; border-radius: 4px;
+    box-shadow: inset 0 0 0 3px var(--gold), 0 0 14px var(--gold-soft);
+    pointer-events: none; z-index: 2;
+  }
+  .cell.hint { box-shadow: inset 0 0 0 4px #7BD389; }
+  .cell.target::before {
+    content: ""; position: absolute; width: 26%; height: 26%; border-radius: 50%;
+    background: radial-gradient(circle at 35% 35%, #FFF8E0, var(--gold));
+    box-shadow: 0 0 12px var(--gold-soft);
+    z-index: 1; pointer-events: none;
+    animation: pulse 1.6s ease-in-out infinite;
+  }
+  @keyframes pulse { 0%, 100% { transform: scale(1); opacity: 0.9; } 50% { transform: scale(1.12); opacity: 1; } }
+  .piece {
+    width: 76%; height: 76%; border-radius: 50%; position: relative;
+    pointer-events: none; transition: transform 0.3s ease;
+  }
+  .piece.r {
+    background: radial-gradient(circle at 34% 30%, var(--red-hi), var(--red-lo) 75%);
+    box-shadow: 0 4px 0 var(--red-edge), 0 8px 12px rgba(0,0,0,0.45), inset 0 0 0 3px rgba(255,255,255,0.12), inset 0 -4px 6px rgba(0,0,0,0.25);
+  }
+  .piece.b {
+    background: radial-gradient(circle at 34% 30%, var(--black-hi), var(--black-lo) 75%);
+    box-shadow: 0 4px 0 var(--black-edge), 0 8px 12px rgba(0,0,0,0.5), inset 0 0 0 3px rgba(255,255,255,0.08), inset 0 -4px 6px rgba(0,0,0,0.3);
+  }
+  .piece::before { content: ""; position: absolute; inset: 16%; border-radius: 50%; border: 2px solid rgba(255,255,255,0.12); }
+  .piece.k::after {
+    content: "♛"; position: absolute; inset: 0;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.35rem; color: var(--gold); text-shadow: 0 1px 2px rgba(0,0,0,0.6);
+  }
+  .piece.crowned { animation: crown 0.9s ease-out; }
+  @keyframes crown {
+    0% { box-shadow: 0 0 0 0 var(--gold), 0 8px 12px rgba(0,0,0,0.45); }
+    50% { box-shadow: 0 0 0 16px rgba(230,184,106,0.0), 0 0 30px 6px var(--gold); }
+    100% { box-shadow: 0 4px 0 var(--red-edge), 0 8px 12px rgba(0,0,0,0.45); }
+  }
+  .piece.ghost { position: absolute; z-index: 3; animation: ghost 0.5s ease-out forwards; }
+  @keyframes ghost { to { opacity: 0; transform: scale(0.3); } }
+  .spark {
+    position: absolute; width: 6px; height: 6px; border-radius: 50%;
+    background: var(--gold); pointer-events: none; z-index: 3;
+    animation: spark 0.6s ease-out forwards;
+  }
+  @keyframes spark { to { transform: translate(var(--dx), var(--dy)); opacity: 0; } }
+
+  .controls { display: flex; gap: 10px; flex-wrap: wrap; }
+  button {
+    font: inherit; font-size: 0.92rem; flex: 1 1 auto; min-width: 0; height: 46px; padding: 0 12px;
+    border-radius: 999px; border: 1px solid var(--glass-line);
+    background: var(--glass); color: var(--ink); cursor: pointer;
+    transition: background 0.15s ease, border-color 0.15s ease, transform 0.08s ease;
+  }
+  button:hover:not(:disabled) { background: rgba(255, 245, 230, 0.12); border-color: var(--gold-soft); }
+  button:active:not(:disabled) { transform: scale(0.98); }
+  button:disabled { opacity: 0.4; cursor: default; }
+  button.primary { background: var(--gold); color: var(--btn-ink); border-color: transparent; font-weight: 600; }
+  button.primary:hover:not(:disabled) { filter: brightness(1.06); background: var(--gold); }
+  button:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
+
+  .panel {
+    background: var(--glass); border: 1px solid var(--glass-line);
+    backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+    border-radius: 18px; padding: 16px;
+    display: flex; flex-direction: column; gap: 12px;
+  }
+  .panel.hidden { display: none; }
+  .panel h2 { font-size: 0.95rem; font-weight: 600; color: var(--gold); }
+  .row { display: flex; justify-content: space-between; align-items: center; gap: 12px; font-size: 0.92rem; }
+  .row select {
+    font: inherit; color: var(--ink); background: var(--frame-lo);
+    border: 1px solid rgba(255,245,230,0.15); border-radius: 10px; padding: 6px 10px; min-width: 150px;
+  }
+  .row.check { justify-content: flex-start; cursor: pointer; }
+  .row.check input { width: 18px; height: 18px; accent-color: var(--gold); }
+  .muted { color: var(--muted); font-size: 0.85rem; }
+  .history { display: flex; flex-wrap: wrap; gap: 6px; font-size: 0.82rem; font-variant-numeric: tabular-nums; max-height: 120px; overflow-y: auto; }
+  .mv { background: rgba(255,245,230,0.06); border-radius: 8px; padding: 3px 8px; }
+  .ach { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .ach div { font-size: 0.82rem; padding: 8px 10px; border-radius: 12px; background: rgba(255,245,230,0.05); border: 1px solid var(--glass-line); }
+  .ach div.on { color: var(--gold); border-color: var(--gold-soft); }
+  .ach div.off { opacity: 0.45; }
+  .daily-bar { height: 6px; border-radius: 3px; background: rgba(255,245,230,0.08); overflow: hidden; }
+  .daily-bar span { display: block; height: 100%; background: var(--gold); width: 0; transition: width 0.4s ease; }
+
+  #toast {
+    position: fixed; left: 50%; bottom: 28px; transform: translate(-50%, 120%);
+    background: var(--gold); color: var(--btn-ink); font-weight: 600; font-size: 0.9rem;
+    padding: 10px 18px; border-radius: 999px; z-index: 20;
+    transition: transform 0.35s ease; box-shadow: 0 10px 30px rgba(0,0,0,0.4);
+    max-width: 90vw; text-align: center;
+  }
+  #toast.show { transform: translate(-50%, 0); }
+  #confetti { position: fixed; inset: 0; width: 100%; height: 100%; pointer-events: none; z-index: 10; }
+</style>
+</head>
+<body>
+<canvas id="confetti"></canvas>
+<main class="app">
+  <header>
+    <h1 data-i18n="title">Shashka</h1>
+    <div class="legend">
+      <span><i class="dot r"></i><span data-i18n="red">Qizil</span></span>
+      <span><i class="dot b"></i><span data-i18n="black">Qora</span></span>
+    </div>
+  </header>
+
+  <div class="opp" id="opp"></div>
+
+  <div class="infobar">
+    <div class="status" id="status"></div>
+    <div class="timer" id="timer"></div>
+  </div>
+  <div class="tip" id="tip"></div>
+
+  <div class="board-wrap">
+    <div class="board" id="board" role="grid" aria-label="Shashka taxtasi"></div>
+  </div>
+
+  <div class="controls">
+    <button id="hintBtn" data-i18n="hint">Maslahat</button>
+    <button id="undoBtn" data-i18n="undo">Orqaga</button>
+    <button id="newBtn" class="primary" data-i18n="newGame">Yangi o'yin</button>
+  </div>
+  <div class="controls">
+    <button id="modeBtn">Kompyuterga qarshi</button>
+    <button id="settingsBtn" data-i18n="settings">Sozlamalar</button>
+  </div>
+
+  <section class="panel hidden" id="settings">
+    <div class="row"><span data-i18n="opponent">Raqib</span>
+      <select id="levelSel">
+        <option value="2" data-i18n="opp0">Yosh o'yinchi</option>
+        <option value="4" data-i18n="opp1">Ustoz</option>
+        <option value="6" data-i18n="opp2">Chempion</option>
+      </select>
+    </div>
+    <div class="row"><span data-i18n="lang">Til</span>
+      <select id="langSel">
+        <option value="uz">O'zbekcha</option>
+        <option value="ru">Русский</option>
+        <option value="en">English</option>
+      </select>
+    </div>
+    <div class="row"><span data-i18n="theme">Mavzu</span>
+      <select id="themeSel">
+        <option value="classic" data-i18n="th1">Klassik</option>
+        <option value="modern" data-i18n="th2">Zamonaviy</option>
+        <option value="night" data-i18n="th3">Tungi</option>
+      </select>
+    </div>
+    <div class="row"><span data-i18n="timer">Vaqt chegarasi</span>
+      <select id="timerSel">
+        <option value="0" data-i18n="off">Yo'q</option>
+        <option value="30" data-i18n="sec30">30 soniya</option>
+      </select>
+    </div>
+    <label class="row check"><input type="checkbox" id="flyChk"><span data-i18n="fly">Uchuvchi shoh</span></label>
+    <label class="row check"><input type="checkbox" id="tutChk"><span data-i18n="tutorial">Mashq rejimi</span></label>
+    <label class="row check"><input type="checkbox" id="soundChk" checked><span data-i18n="sound">Ovoz</span></label>
+    <label class="row check"><input type="checkbox" id="vibeChk" checked><span data-i18n="vibe">Tebranish</span></label>
+    <div class="muted" data-i18n="rulesNote">Uchuvchi shoh yoqilsa, shoh bir necha katakka yura oladi.</div>
+  </section>
+
+  <section class="panel">
+    <h2 data-i18n="dailyTitle">Kunlik maqsad</h2>
+    <div class="row"><span id="dailyText"></span></div>
+    <div class="daily-bar"><span id="dailyBar"></span></div>
+  </section>
+
+  <section class="panel">
+    <h2 data-i18n="achTitle">Yutuqlar</h2>
+    <div class="ach" id="ach"></div>
+  </section>
+
+  <section class="panel hidden" id="adminPanel">
+    <h2 data-i18n="adminTitle">Egasi uchun statistika</h2>
+    <div class="muted" id="adminStats"></div>
+  </section>
+
+  <section class="panel">
+    <div class="muted" id="stats"></div>
+    <h2 data-i18n="history">Yurishlar</h2>
+    <div class="history" id="history"></div>
+  </section>
+</main>
+<div id="toast"></div>
+
+<script>
+(function () {
+  const N = 8;
+  const ALL_DIRS = [[-1,-1],[-1,1],[1,-1],[1,1]];
+  const $ = id => document.getElementById(id);
+
+  // ---------- Saqlash (faqat shu brauzerda) ----------
+  function load(key, def) {
+    try { const v = localStorage.getItem(key); return v ? JSON.parse(v) : def; } catch (e) { return def; }
+  }
+  function save(key, val) {
+    try { localStorage.setItem(key, JSON.stringify(val)); } catch (e) { /* saqlab bo'lmasa, jim o'tadi */ }
+  }
+
+  // ---------- Tillar ----------
+  const LANGS = {
+    uz: {
+      title: 'Shashka', red: 'Qizil', black: 'Qora', hint: 'Maslahat', undo: 'Orqaga',
+      newGame: "Yangi o'yin", modeAi: 'Kompyuterga qarshi', modeTwo: "Ikki o'yinchi",
+      settings: 'Sozlamalar', opponent: 'Raqib', opp0: "Yosh o'yinchi", opp1: 'Ustoz', opp2: 'Chempion',
+      lang: 'Til', theme: 'Mavzu', th1: 'Klassik', th2: 'Zamonaviy', th3: 'Tungi',
+      timer: 'Vaqt chegarasi', off: "Yo'q", sec30: '30 soniya', fly: 'Uchuvchi shoh',
+      tutorial: 'Mashq rejimi', sound: 'Ovoz', vibe: 'Tebranish',
+      rulesNote: "Uchuvchi shoh yoqilsa, shoh bir necha katakka yura oladi.",
+      yourTurn: 'Sizning navbatingiz (qizil)', aiThink: "Kompyuter o'ylamoqda...", turn: 'Navbat:',
+      win: "G'alaba:", youWon: '(siz yutdingiz!)', aiWon: '(kompyuter yutdi)', timeLeft: 'Vaqt:',
+      autoMove: 'vaqt tugadi, avtomatik yurish', history: 'Yurishlar', stats: 'Statistika',
+      none: "Hali yurish yo'q",
+      oppName0: "Yosh o'yinchi", oppName1: 'Ustoz', oppName2: 'Chempion',
+      taunt0: "Hali o'rganyapsiz-ku!", taunt1: 'Bu yurishni oldindan ko\'rgandim.', taunt2: 'Tosh qurbon bo\'ldi.',
+      lose0: "Yaxshi o'ynadingiz!", lose1: 'Meni ajablantirdingiz.', lose2: "Bu safar sizniki, lekin takror bo'lmaydi.",
+      tip1: "Oddiy tosh faqat diagonal bo'yicha oldinga yuradi.",
+      tip2: "Sakrash majburiy: imkon bo'lsa, boshqa yurish ruxsat etilmaydi.",
+      tip3: "Bir yurishda bir nechta tosh olish mumkin.",
+      tip4: "Oxirgi qatorga yetgan tosh shohga aylanadi.",
+      tip5: "Shoh orqaga ham yura oladi va ikki tomonga ham harakatlanadi.",
+      mandatory: 'Sakrash majburiy!',
+      achTitle: 'Yutuqlar', achToast: 'Yangi yutuq',
+      ach_first_win: "Birinchi g'alaba", ach_king: 'Birinchi shoh', ach_triple: 'Uch tomonlama sakrash',
+      ach_beat_ai: 'Kompyuterni yengish', ach_beat_chempion: 'Chempionni yengish',
+      dailyTitle: 'Kunlik maqsad', dailyDone: 'Kunlik maqsad bajarildi!',
+      daily0: 'Bugun bitta tosh shohga aylantiring', daily1: 'Bugun bitta yurishda 2 ta tosh oling',
+      daily2: 'Bugun kompyuterni yengib chiqing', daily3: 'Bugun 10 ta yurish qiling',
+      daily4: 'Bugun jami 3 ta tosh oling',
+      adminTitle: 'Egasi uchun statistika', players: 'Foydalanuvchilar',
+      gamesDone: "Tugallangan o'yinlar", visits: 'Kirishlar'
+    },
+    ru: {
+      title: 'Шашки', red: 'Красные', black: 'Чёрные', hint: 'Подсказка', undo: 'Назад',
+      newGame: 'Новая игра', modeAi: 'Против компьютера', modeTwo: 'Два игрока',
+      settings: 'Настройки', opponent: 'Соперник', opp0: 'Новичок', opp1: 'Наставник', opp2: 'Чемпион',
+      lang: 'Язык', theme: 'Тема', th1: 'Классика', th2: 'Современная', th3: 'Ночная',
+      timer: 'Лимит времени', off: 'Нет', sec30: '30 секунд', fly: 'Летающая дамка',
+      tutorial: 'Режим обучения', sound: 'Звук', vibe: 'Вибрация',
+      rulesNote: 'Если включена летающая дамка, она ходит на любое число клеток.',
+      yourTurn: 'Ваш ход (красные)', aiThink: 'Компьютер думает...', turn: 'Ход:',
+      win: 'Победа:', youWon: '(вы выиграли!)', aiWon: '(победил компьютер)', timeLeft: 'Время:',
+      autoMove: 'время вышло, автоход', history: 'Ходы', stats: 'Статистика',
+      none: 'Ходов пока нет',
+      oppName0: 'Новичок', oppName1: 'Наставник', oppName2: 'Чемпион',
+      taunt0: 'Вы ещё учитесь!', taunt1: 'Этот ход я предвидел.', taunt2: 'Шашка пала.',
+      lose0: 'Хорошо сыграно!', lose1: 'Вы меня удивили.', lose2: 'В этот раз вы, но так не будет всегда.',
+      tip1: 'Обычная шашка ходит только по диагонали вперёд.',
+      tip2: 'Бой обязателен: если можно бить, другой ход запрещён.',
+      tip3: 'За один ход можно взять несколько шашек.',
+      tip4: 'Шашка, дошедшая до последнего ряда, становится дамкой.',
+      tip5: 'Дамка ходит назад и в обе стороны.',
+      mandatory: 'Бой обязателен!',
+      achTitle: 'Достижения', achToast: 'Новое достижение',
+      ach_first_win: 'Первая победа', ach_king: 'Первая дамка', ach_triple: 'Тройной удар',
+      ach_beat_ai: 'Победа над компьютером', ach_beat_chempion: 'Победа над чемпионом',
+      dailyTitle: 'Цель дня', dailyDone: 'Цель дня выполнена!',
+      daily0: 'Сегодня сделайте шашку дамкой', daily1: 'Сегодня возьмите 2 шашки за один ход',
+      daily2: 'Сегодня победите компьютер', daily3: 'Сегодня сделайте 10 ходов',
+      daily4: 'Сегодня возьмите 3 шашки всего',
+      adminTitle: 'Статистика владельца', players: 'Игроки',
+      gamesDone: 'Завершённые партии', visits: 'Визиты'
+    },
+    en: {
+      title: 'Checkers', red: 'Red', black: 'Black', hint: 'Hint', undo: 'Undo',
+      newGame: 'New game', modeAi: 'vs Computer', modeTwo: 'Two players',
+      settings: 'Settings', opponent: 'Opponent', opp0: 'Beginner', opp1: 'Coach', opp2: 'Champion',
+      lang: 'Language', theme: 'Theme', th1: 'Classic', th2: 'Modern', th3: 'Night',
+      timer: 'Time limit', off: 'Off', sec30: '30 seconds', fly: 'Flying kings',
+      tutorial: 'Tutorial tips', sound: 'Sound', vibe: 'Vibration',
+      rulesNote: 'With flying kings, a king moves any distance along a diagonal.',
+      yourTurn: 'Your turn (red)', aiThink: 'Computer is thinking...', turn: 'Turn:',
+      win: 'Winner:', youWon: '(you won!)', aiWon: '(computer won)', timeLeft: 'Time:',
+      autoMove: 'time is up, auto move', history: 'Moves', stats: 'Stats',
+      none: 'No moves yet',
+      oppName0: 'Beginner', oppName1: 'Coach', oppName2: 'Champion',
+      taunt0: "You're still learning!", taunt1: 'I saw that move coming.', taunt2: 'Another piece falls.',
+      lose0: 'Well played!', lose1: 'You surprised me.', lose2: "This time it's yours, but not forever.",
+      tip1: 'A normal piece moves only diagonally forward.',
+      tip2: 'Captures are mandatory: if you can jump, you must.',
+      tip3: 'One move can capture several pieces.',
+      tip4: 'A piece that reaches the last row becomes a king.',
+      tip5: 'A king can move backward and in both directions.',
+      mandatory: 'Capture is mandatory!',
+      achTitle: 'Achievements', achToast: 'New achievement',
+      ach_first_win: 'First win', ach_king: 'First king', ach_triple: 'Triple jump',
+      ach_beat_ai: 'Beat the computer', ach_beat_chempion: 'Beat the champion',
+      dailyTitle: 'Daily goal', dailyDone: 'Daily goal completed!',
+      daily0: 'Turn one piece into a king today', daily1: 'Capture 2 pieces in one move today',
+      daily2: 'Beat the computer today', daily3: 'Make 10 moves today',
+      daily4: 'Capture 3 pieces in total today',
+      adminTitle: 'Owner stats', players: 'Players',
+      gamesDone: 'Finished games', visits: 'Visits'
+    }
+  };
+
+  let lang = 'uz';
+  const t = k => (LANGS[lang] && LANGS[lang][k]) || LANGS.uz[k] || k;
+  const OPP_EMOJI = ['🐣', '🧑‍🏫', '🏆'];
+
+  // ---------- Holat ----------
+  let settings = { depth: 6, fly: false, sound: true, vibe: true, time: 0, theme: 'classic', tutorial: false };
+  let mode = 'ai';
+  let board, turn, selected, over, hint, lastMove, busy, note, quote, promoSq;
+  let history = [], log = [];
+  let stats = load('shashka_stats', { r: 0, b: 0 });
+  let ach = load('shashka_ach', {});
+  let daily = null;
+  let aiTimer = null, clockId = null, timeLeft = 0;
+  let audioCtx = null;
+  let myRef = null, myCounts = { visits: 0, games: 0 }, writeChain = Promise.resolve();
+
+  function inB(r, c) { return r >= 0 && r < N && c >= 0 && c < N; }
+  function forward(color) { return color === 'r' ? -1 : 1; }
+  function other(color) { return color === 'r' ? 'b' : 'r'; }
+  function cloneBoard(b) { return b.map(row => row.slice()); }
+  function destOf(mv) { return mv.path[mv.path.length - 1]; }
+  function sameSq(a, b) { return a[0] === b[0] && a[1] === b[1]; }
+  function sqName(r, c) { return 'abcdefgh'[c] + (N - r); }
+  function notation(mv) { return sqName(mv.from[0], mv.from[1]) + (mv.caps.length ? 'x' : '-') + sqName(...destOf(mv)); }
+  function oppIndex() { return settings.depth <= 2 ? 0 : settings.depth <= 4 ? 1 : 2; }
+
+  function initBoard() {
+    const b = Array.from({ length: N }, () => Array(N).fill(null));
+    for (let r = 0; r < 3; r++) for (let c = 0; c < N; c++) if ((r + c) % 2 === 1) b[r][c] = { c: 'b', k: false };
+    for (let r = 5; r < N; r++) for (let c = 0; c < N; c++) if ((r + c) % 2 === 1) b[r][c] = { c: 'r', k: false };
+    return b;
+  }
+
+  // ---------- Yurish qoidalari ----------
+  function jumpsFrom(b, r, c, piece) {
+    const results = [];
+    const start = cloneBoard(b);
+    start[r][c] = null;
+    function rec(cr, cc, state, path, caps) {
+      let extended = false;
+      for (const [dr, dc] of ALL_DIRS) {
+        if (piece.k && settings.fly) {
+          let mr = cr + dr, mc = cc + dc;
+          while (inB(mr, mc) && !state[mr][mc]) { mr += dr; mc += dc; }
+          if (!inB(mr, mc) || state[mr][mc].c === piece.c) continue;
+          let lr = mr + dr, lc = mc + dc;
+          while (inB(lr, lc) && !state[lr][lc]) {
+            extended = true;
+            const ns = cloneBoard(state);
+            ns[mr][mc] = null;
+            rec(lr, lc, ns, [...path, [lr, lc]], [...caps, [mr, mc]]);
+            lr += dr; lc += dc;
+          }
+        } else {
+          const mr = cr + dr, mc = cc + dc, lr = cr + 2 * dr, lc = cc + 2 * dc;
+          if (!inB(lr, lc)) continue;
+          const mid = state[mr][mc];
+          if (!mid || mid.c === piece.c || state[lr][lc]) continue;
+          extended = true;
+          const ns = cloneBoard(state);
+          ns[mr][mc] = null;
+          rec(lr, lc, ns, [...path, [lr, lc]], [...caps, [mr, mc]]);
+        }
+      }
+      if (!extended && caps.length) results.push({ from: [r, c], path, caps });
+    }
+    rec(r, c, start, [], []);
+    return results;
+  }
+
+  function allMoves(b, color) {
+    const captures = [], simple = [];
+    for (let r = 0; r < N; r++) for (let c = 0; c < N; c++) {
+      const p = b[r][c];
+      if (p && p.c === color) captures.push(...jumpsFrom(b, r, c, p));
+    }
+    if (captures.length) return captures;
+    for (let r = 0; r < N; r++) for (let c = 0; c < N; c++) {
+      const p = b[r][c];
+      if (!p || p.c !== color) continue;
+      const dirs = p.k ? ALL_DIRS : ALL_DIRS.filter(d => d[0] === forward(color));
+      for (const [dr, dc] of dirs) {
+        if (p.k && settings.fly) {
+          let nr = r + dr, nc = c + dc;
+          while (inB(nr, nc) && !b[nr][nc]) { simple.push({ from: [r, c], path: [[nr, nc]], caps: [] }); nr += dr; nc += dc; }
+        } else {
+          const nr = r + dr, nc = c + dc;
+          if (inB(nr, nc) && !b[nr][nc]) simple.push({ from: [r, c], path: [[nr, nc]], caps: [] });
+        }
+      }
+    }
+    return simple;
+  }
+
+  function applyMove(b, mv) {
+    const nb = cloneBoard(b);
+    const [fr, fc] = mv.from;
+    const p = nb[fr][fc];
+    nb[fr][fc] = null;
+    mv.caps.forEach(([r, c]) => { nb[r][c] = null; });
+    const [tr, tc] = destOf(mv);
+    const promoted = (p.c === 'r' && tr === 0) || (p.c === 'b' && tr === N - 1);
+    nb[tr][tc] = { c: p.c, k: p.k || promoted };
+    return nb;
+  }
+
+  // ---------- AI ----------
+  function evaluate(b) {
+    let score = 0;
+    for (let r = 0; r < N; r++) for (let c = 0; c < N; c++) {
+      const p = b[r][c];
+      if (!p) continue;
+      const sign = p.c === 'b' ? 1 : -1;
+      let v = p.k ? 175 : 100;
+      if (!p.k) v += (p.c === 'b' ? r : (N - 1 - r)) * 6;
+      if (c >= 2 && c <= 5) v += 4;
+      if (r >= 2 && r <= 5) v += 3;
+      score += sign * v;
+    }
+    return score;
+  }
+
+  function minimax(b, color, depth, alpha, beta) {
+    const moves = allMoves(b, color);
+    if (!moves.length) return color === 'b' ? -100000 - depth : 100000 + depth;
+    if (depth === 0) return evaluate(b);
+    if (color === 'b') {
+      let best = -Infinity;
+      for (const mv of moves) {
+        const v = minimax(applyMove(b, mv), 'r', depth - 1, alpha, beta);
+        if (v > best) best = v;
+        if (best > alpha) alpha = best;
+        if (alpha >= beta) break;
+      }
+      return best;
+    }
+    let best = Infinity;
+    for (const mv of moves) {
+      const v = minimax(applyMove(b, mv), 'b', depth - 1, alpha, beta);
+      if (v < best) best = v;
+      if (best < beta) beta = best;
+      if (alpha >= beta) break;
+    }
+    return best;
+  }
+
+  function bestMove(color, depth) {
+    const moves = allMoves(board, color);
+    if (moves.length <= 1) return moves[0] || null;
+    let best = null, bestVal = color === 'b' ? -Infinity : Infinity;
+    for (const mv of moves) {
+      const v = minimax(applyMove(board, mv), other(color), depth - 1, -Infinity, Infinity);
+      if (color === 'b' ? v > bestVal : v < bestVal) { bestVal = v; best = mv; }
+    }
+    return best;
+  }
+
+  // ---------- Ovoz va tebranish ----------
+  function beep(freq, dur, type) {
+    if (!settings.sound) return;
+    try {
+      audioCtx = audioCtx || new (window.AudioContext || window.webkitAudioContext)();
+      const now = audioCtx.currentTime;
+      const o = audioCtx.createOscillator(), g = audioCtx.createGain();
+      o.type = type || 'sine';
+      o.frequency.value = freq;
+      o.connect(g); g.connect(audioCtx.destination);
+      g.gain.setValueAtTime(0.0001, now);
+      g.gain.exponentialRampToValueAtTime(0.15, now + 0.01);
+      g.gain.exponentialRampToValueAtTime(0.0001, now + dur);
+      o.start(now); o.stop(now + dur);
+    } catch (e) { /* ovoz ishlamasa, jim o'tadi */ }
+  }
+  function sfxMove(caps, promoted) {
+    if (promoted) return beep(880, 0.25, 'triangle');
+    if (caps) return beep(330, 0.15, 'triangle');
+    beep(520, 0.08, 'sine');
+  }
+  function sfxWin() { [523, 659, 784].forEach((f, i) => setTimeout(() => beep(f, 0.2, 'triangle'), i * 150)); }
+  function vibe(pattern) {
+    if (!settings.vibe || !navigator.vibrate) return;
+    try { navigator.vibrate(pattern); } catch (e) { /* qo'llab-quvvatlanmasa */ }
+  }
+
+  // ---------- Vizual effektlar ----------
+  function spawnFx(prev, mv) {
+    const boardEl = $('board');
+    const cellW = boardEl.clientWidth / N;
+    if (!cellW) return;
+    mv.caps.forEach(([r, c]) => {
+      const p = prev[r][c];
+      if (!p) return;
+      const g = document.createElement('div');
+      g.className = 'piece ghost ' + p.c + (p.k ? ' k' : '');
+      g.style.left = (c * cellW + cellW * 0.12) + 'px';
+      g.style.top = (r * cellW + cellW * 0.12) + 'px';
+      g.style.width = g.style.height = (cellW * 0.76) + 'px';
+      boardEl.appendChild(g);
+      const cx = c * cellW + cellW / 2, cy = r * cellW + cellW / 2;
+      for (let i = 0; i < 8; i++) {
+        const a = (Math.PI * 2 * i) / 8;
+        const s = document.createElement('span');
+        s.className = 'spark';
+        s.style.left = (cx - 3) + 'px';
+        s.style.top = (cy - 3) + 'px';
+        s.style.setProperty('--dx', (Math.cos(a) * 34) + 'px');
+        s.style.setProperty('--dy', (Math.sin(a) * 34) + 'px');
+        boardEl.appendChild(s);
+        setTimeout(() => s.remove(), 650);
+      }
+      setTimeout(() => g.remove(), 550);
+    });
+  }
+
+  function confetti() {
+    const cv = $('confetti');
+    const ctx = cv.getContext('2d');
+    cv.width = innerWidth; cv.height = innerHeight;
+    const colors = ['#E6B86A', '#E8675B', '#7BD389', '#7EC8FF', '#FFFFFF'];
+    const parts = Array.from({ length: 160 }, () => ({
+      x: Math.random() * cv.width, y: -20 - Math.random() * cv.height * 0.3,
+      vx: (Math.random() - 0.5) * 4, vy: 2 + Math.random() * 4,
+      s: 6 + Math.random() * 6, a: Math.random() * 6,
+      c: colors[Math.floor(Math.random() * colors.length)]
+    }));
+    let frames = 0;
+    (function step() {
+      ctx.clearRect(0, 0, cv.width, cv.height);
+      parts.forEach(p => {
+        p.x += p.vx; p.y += p.vy; p.vy += 0.05; p.a += 0.1;
+        ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(p.a);
+        ctx.fillStyle = p.c; ctx.fillRect(-p.s / 2, -p.s / 4, p.s, p.s / 2);
+        ctx.restore();
+      });
+      frames++;
+      if (frames < 200) requestAnimationFrame(step);
+      else ctx.clearRect(0, 0, cv.width, cv.height);
+    })();
+  }
+
+  let toastTimer = null;
+  function showToast(text) {
+    const el = $('toast');
+    el.textContent = text;
+    el.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => el.classList.remove('show'), 2600);
+  }
+
+  // ---------- Yutuqlar va kunlik maqsad ----------
+  const ACH_IDS = ['first_win', 'king', 'triple', 'beat_ai', 'beat_chempion'];
+
+  function unlock(id) {
+    if (ach[id]) return;
+    ach[id] = true;
+    save('shashka_ach', ach);
+    showToast(t('achToast') + ': ' + t('ach_' + id));
+    renderAch();
+  }
+
+  function todayKey() {
+    const d = new Date();
+    return d.getFullYear() + '-' + (d.getMonth() + 1) + '-' + d.getDate();
+  }
+  function goalIndex(key) {
+    let h = 0;
+    for (const ch of key) h = (h * 31 + ch.charCodeAt(0)) >>> 0;
+    return h % 5;
+  }
+  function ensureDaily() {
+    const k = todayKey();
+    if (!daily || daily.date !== k) {
+      daily = { date: k, goal: goalIndex(k), counts: { promos: 0, multi: 0, beatAi: 0, moves: 0, captured: 0 }, done: false };
+    }
+  }
+  function bumpDaily(field, n) {
+    ensureDaily();
+    daily.counts[field] += n;
+    if (!daily.done) {
+      const c = daily.counts;
+      const ok = [c.promos >= 1, c.multi >= 1, c.beatAi >= 1, c.moves >= 10, c.captured >= 3][daily.goal];
+      if (ok) { daily.done = true; showToast(t('dailyDone')); vibe([80, 40, 80]); confetti(); }
+    }
+    save('shashka_daily', daily);
+    renderDaily();
+  }
+
+  function renderAch() {
+    $('ach').innerHTML = '';
+    ACH_IDS.forEach(id => {
+      const d = document.createElement('div');
+      d.className = ach[id] ? 'on' : 'off';
+      d.textContent = (ach[id] ? '★ ' : '☆ ') + t('ach_' + id);
+      $('ach').appendChild(d);
+    });
+  }
+
+  function renderDaily() {
+    ensureDaily();
+    const c = daily.counts;
+    const cur = [Math.min(c.promos, 1), Math.min(c.multi, 1), Math.min(c.beatAi, 1), Math.min(c.moves, 10), Math.min(c.captured, 3)][daily.goal];
+    const need = [1, 1, 1, 10, 3][daily.goal];
+    $('dailyText').textContent = t('daily' + daily.goal) + ' (' + cur + '/' + need + ')';
+    $('dailyBar').style.width = (cur / need * 100) + '%';
+  }
+
+  // ---------- Umumiy statistika (db) ----------
+  // Har bir o'yinchi faqat o'z hujjatiga yozadi, shuning uchun to'qnashuv bo'lmaydi
+  function writeMine() {
+    if (!myRef) return Promise.resolve();
+    writeChain = writeChain
+      .then(() => myRef.set({ visits: myCounts.visits, games: myCounts.games, lastSeen: Date.now() }))
+      .catch(() => { /* yozish ruxsati bo'lmasa, o'yin davom etadi */ });
+    return writeChain;
+  }
+
+  function recordGame() {
+    myCounts.games++;
+    writeMine();
+  }
+
+  function renderAdmin(snap) {
+    let visits = 0, games = 0;
+    snap.docs.forEach(d => {
+      const x = d.data() || {};
+      visits += Number(x.visits) || 0;
+      games += Number(x.games) || 0;
+    });
+    $('adminStats').textContent = t('players') + ': ' + snap.size + ' · ' +
+      t('gamesDone') + ': ' + games + ' · ' + t('visits') + ': ' + visits;
+  }
+
+  async function initDb() {
+    try {
+      if (!window.claude || typeof window.claude.use !== 'function') return;
+      const db = await window.claude.use('db');
+      const user = await window.claude.use('user');
+      if (!db || !user) return;
+      const id = await user.id();
+      if (!id) return;
+
+      myRef = db.doc('players/' + id);
+      const snap = await myRef.get();
+      const prev = snap.exists ? (snap.data() || {}) : {};
+      myCounts = { visits: (Number(prev.visits) || 0) + 1, games: Number(prev.games) || 0 };
+      writeMine();
+
+      if (await user.isOwner()) {
+        $('adminPanel').classList.remove('hidden');
+        db.collection('players').onSnapshot(renderAdmin, () => {});
+      }
+    } catch (e) {
+      // Ma'lumotlar bazasi bo'lmasa, o'yin oddiy ishlayveradi
+    }
+  }
+
+  // ---------- Taymer ----------
+  function stopClock() { clearInterval(clockId); clockId = null; }
+  function startClock() {
+    stopClock();
+    if (!settings.time || over || (mode === 'ai' && turn === 'b')) { timeLeft = 0; renderTimer(); return; }
+    timeLeft = settings.time;
+    renderTimer();
+    clockId = setInterval(() => {
+      timeLeft--;
+      renderTimer();
+      if (timeLeft <= 0) { stopClock(); timeoutMove(); }
+    }, 1000);
+  }
+  function renderTimer() {
+    $('timer').textContent = clockId && timeLeft > 0 ? t('timeLeft') + ' ' + timeLeft + 's' : '';
+  }
+  function timeoutMove() {
+    const legal = allMoves(board, turn);
+    if (!legal.length) return;
+    makeMove(legal[Math.floor(Math.random() * legal.length)]);
+    note = t('autoMove');
+    renderStatus();
+  }
+
+  // ---------- Harakat ----------
+  function makeMove(mv) {
+    note = '';
+    stopClock();
+    const mover = turn;
+    const prev = board;
+    const p = board[mv.from[0]][mv.from[1]];
+    const nb = applyMove(board, mv);
+    const dest = destOf(mv);
+    const promoted = !p.k && nb[dest[0]][dest[1]].k;
+
+    history.push({ board: prev, turn: mover, log: log.slice(), stats: { ...stats }, over, ach: { ...ach } });
+    log.push(notation(mv));
+    lastMove = { from: mv.from, to: dest };
+    promoSq = promoted ? dest : null;
+    board = nb;
+    selected = null;
+    hint = null;
+    sfxMove(mv.caps.length > 0, promoted);
+
+    // Inson yurishi bo'yicha yutuq va kunlik maqsad
+    if (mover === 'r' || mode === 'two') {
+      bumpDaily('moves', 1);
+      if (mv.caps.length) bumpDaily('captured', mv.caps.length);
+      if (mv.caps.length >= 2) bumpDaily('multi', 1);
+      if (mv.caps.length >= 3) unlock('triple');
+      if (promoted) { bumpDaily('promos', 1); unlock('king'); }
+      if (mv.caps.length) vibe(20);
+    }
+    if (mover === 'b' && mv.caps.length && mode === 'ai') quote = t('taunt' + oppIndex());
+
+    turn = other(turn);
+    if (!allMoves(board, turn).length) {
+      over = other(turn);
+      stats[over]++;
+      save('shashka_stats', stats);
+      recordGame();
+      sfxWin();
+      if (over === 'r') {
+        unlock('first_win');
+        if (mode === 'ai') {
+          unlock('beat_ai');
+          bumpDaily('beatAi', 1);
+          if (settings.depth >= 6) unlock('beat_chempion');
+          quote = t('lose' + oppIndex());
+        }
+        vibe([100, 60, 100]);
+        confetti();
+      }
+    }
+
+    startClock();
+    render();
+    spawnFx(prev, mv);
+
+    if (!over && mode === 'ai' && turn === 'b') {
+      busy = true;
+      aiTimer = setTimeout(aiMove, 500);
+    }
+  }
+
+  function aiMove() {
+    aiTimer = null;
+    busy = false;
+    const legal = allMoves(board, 'b');
+    if (!legal.length) { over = 'r'; stats.r++; save('shashka_stats', stats); sfxWin(); render(); return; }
+    let mv;
+    if (settings.depth <= 2 && Math.random() < 0.3) mv = legal[Math.floor(Math.random() * legal.length)];
+    else mv = bestMove('b', settings.depth) || legal[0];
+    makeMove(mv);
+  }
+
+  function showHint() {
+    if (over || busy || (mode === 'ai' && turn === 'b')) return;
+    const mv = bestMove(turn, Math.max(3, settings.depth));
+    if (!mv) return;
+    hint = mv;
+    selected = mv.from;
+    render();
+  }
+
+  function undo() {
+    if (!history.length) return;
+    clearTimeout(aiTimer);
+    aiTimer = null;
+    busy = false;
+    const restore = s => {
+      board = s.board; turn = s.turn; log = s.log; stats = s.stats; over = s.over; ach = s.ach;
+      save('shashka_stats', stats); save('shashka_ach', ach);
+    };
+    if (mode === 'ai') {
+      do { restore(history.pop()); } while (history.length && turn !== 'r');
+    } else {
+      restore(history.pop());
+    }
+    selected = null; hint = null; lastMove = null; note = ''; quote = ''; promoSq = null;
+    render();
+    startClock();
+  }
+
+  function newGame() {
+    clearTimeout(aiTimer);
+    aiTimer = null;
+    stopClock();
+    board = initBoard();
+    turn = 'r';
+    selected = null; over = null; hint = null; lastMove = null; promoSq = null;
+    busy = false; note = ''; quote = '';
+    history = []; log = [];
+    render();
+    startClock();
+  }
+
+  function onCell(r, c) {
+    if (over || busy) return;
+    if (mode === 'ai' && turn === 'b') return;
+    hint = null;
+    const legal = allMoves(board, turn);
+    if (selected) {
+      const mv = legal.find(m => sameSq(m.from, selected) && sameSq(destOf(m), [r, c]));
+      if (mv) return makeMove(mv);
+    }
+    const p = board[r][c];
+    selected = (p && p.c === turn && legal.some(m => sameSq(m.from, [r, c]))) ? [r, c] : null;
+    render();
+  }
+
+  // ---------- Ko'rinish ----------
+  function render() {
+    const boardEl = $('board');
+    // Effektlar qolganini tozalash
+    boardEl.innerHTML = '';
+
+    const legal = selected ? allMoves(board, turn).filter(m => sameSq(m.from, selected)) : [];
+    const targets = new Set(legal.map(m => destOf(m).join(',')));
+    const cellW = boardEl.clientWidth / N || 0;
+    let animPiece = null;
+
+    for (let r = 0; r < N; r++) for (let c = 0; c < N; c++) {
+      const isDark = (r + c) % 2 === 1;
+      const cell = document.createElement('div');
+      cell.className = 'cell ' + (isDark ? 'dark' : 'light');
+      if (selected && sameSq(selected, [r, c])) cell.classList.add('selected');
+      if (targets.has(r + ',' + c)) cell.classList.add('target');
+      if (hint && sameSq(destOf(hint), [r, c])) cell.classList.add('hint');
+      cell.addEventListener('click', () => onCell(r, c));
+
+      const p = board[r][c];
+      if (p) {
+        const piece = document.createElement('div');
+        piece.className = 'piece ' + p.c + (p.k ? ' k' : '');
+        if (promoSq && sameSq(promoSq, [r, c])) piece.classList.add('crowned');
+        if (lastMove && sameSq(lastMove.to, [r, c]) && cellW) {
+          piece.style.transform = `translate(${(lastMove.from[1] - c) * cellW}px, ${(lastMove.from[0] - r) * cellW}px)`;
+          animPiece = piece;
+        }
+        cell.appendChild(piece);
+      }
+      boardEl.appendChild(cell);
+    }
+    if (animPiece) requestAnimationFrame(() => requestAnimationFrame(() => { animPiece.style.transform = ''; }));
+    lastMove = null;
+    promoSq = null;
+
+    renderStatus();
+    renderOpp();
+    renderStats();
+    renderHistory();
+    renderTimer();
+    renderDaily();
+    renderAch();
+  }
+
+  function renderStatus() {
+    const st = $('status');
+    if (over) {
+      const w = over === 'r' ? t('red') : t('black');
+      const extra = mode === 'ai' ? ' ' + (over === 'r' ? t('youWon') : t('aiWon')) : '';
+      st.innerHTML = '<b>' + t('win') + ' ' + w + '</b>' + extra;
+    } else {
+      let text;
+      if (mode === 'ai' && turn === 'b') text = t('aiThink');
+      else if (mode === 'ai') text = t('yourTurn');
+      else text = t('turn') + ' <b>' + (turn === 'r' ? t('red') : t('black')) + '</b>';
+      if (note) text += ' · ' + note;
+      st.innerHTML = text;
+    }
+    renderTip();
+  }
+
+  function renderTip() {
+    let text = '';
+    if (settings.tutorial && !over && !(mode === 'ai' && turn === 'b')) {
+      const legal = allMoves(board, turn);
+      if (legal.length && legal[0].caps.length) text = t('mandatory');
+      else text = t('tip' + (Math.min(4, Math.floor(log.length / 2)) + 1));
+    }
+    $('tip').textContent = text;
+  }
+
+  function renderOpp() {
+    const el = $('opp');
+    if (mode !== 'ai') { el.innerHTML = ''; return; }
+    const i = oppIndex();
+    el.innerHTML = '<span class="av">' + OPP_EMOJI[i] + '</span><span>' + t('oppName' + i) + '</span>' +
+      (quote ? '<span class="quote">— ' + quote + '</span>' : '');
+  }
+
+  function renderStats() {
+    $('stats').textContent = t('stats') + ': ' + t('red') + ' ' + stats.r + ' · ' + t('black') + ' ' + stats.b;
+  }
+
+  function renderHistory() {
+    const h = $('history');
+    h.innerHTML = '';
+    if (!log.length) {
+      const span = document.createElement('span');
+      span.className = 'muted';
+      span.textContent = t('none');
+      h.appendChild(span);
+      return;
+    }
+    log.forEach((m, i) => {
+      const chip = document.createElement('span');
+      chip.className = 'mv';
+      chip.textContent = (i + 1) + '. ' + m;
+      h.appendChild(chip);
+    });
+    h.scrollTop = h.scrollHeight;
+  }
+
+  function updateModeBtn() {
+    $('modeBtn').textContent = mode === 'ai' ? t('modeAi') : t('modeTwo');
+  }
+
+  function applyLang() {
+    document.documentElement.lang = lang;
+    document.title = t('title');
+    document.querySelectorAll('[data-i18n]').forEach(el => { el.textContent = t(el.dataset.i18n); });
+    updateModeBtn();
+    render();
+  }
+
+  // ---------- Boshqaruv ----------
+  $('hintBtn').addEventListener('click', showHint);
+  $('undoBtn').addEventListener('click', undo);
+  $('newBtn').addEventListener('click', newGame);
+  $('modeBtn').addEventListener('click', () => {
+    mode = mode === 'ai' ? 'two' : 'ai';
+    updateModeBtn();
+    newGame();
+  });
+  $('settingsBtn').addEventListener('click', () => $('settings').classList.toggle('hidden'));
+  $('levelSel').addEventListener('change', e => { settings.depth = Number(e.target.value); quote = ''; render(); });
+  $('langSel').addEventListener('change', e => { lang = e.target.value; applyLang(); });
+  $('themeSel').addEventListener('change', e => { settings.theme = e.target.value; document.body.dataset.theme = settings.theme; });
+  $('timerSel').addEventListener('change', e => { settings.time = Number(e.target.value); startClock(); render(); });
+  $('flyChk').addEventListener('change', e => { settings.fly = e.target.checked; newGame(); });
+  $('tutChk').addEventListener('change', e => { settings.tutorial = e.target.checked; render(); });
+  $('soundChk').addEventListener('change', e => { settings.sound = e.target.checked; });
+  $('vibeChk').addEventListener('change', e => { settings.vibe = e.target.checked; });
+
+  // Boshlang'ich holat
+  $('levelSel').value = String(settings.depth);
+  $('themeSel').value = settings.theme;
+  document.body.dataset.theme = settings.theme;
+  $('flyChk').checked = settings.fly;
+  $('tutChk').checked = settings.tutorial;
+  $('soundChk').checked = settings.sound;
+  $('vibeChk').checked = settings.vibe;
+  ensureDaily();
+  newGame();
+  applyLang();
+  initDb();
+})();
+</script>
+</body>
+</html>
